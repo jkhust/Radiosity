@@ -1,29 +1,38 @@
+//code for Windows to run well
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <cassert>
 #include <math.h>
 #include <time.h>
-#include <sys/time.h>
+//#include <sys/time.h>
+
+#include <winsock2.h>
 
 #ifdef __MACH__
 #include <mach/clock.h>
 #include <mach/mach.h>
 #endif
 
-#define __MAC__
+//#define __MAC__
 
 #ifdef _WIN32
 #include <windows.h>
+#include <glut.h>
+#include <gl\GL.h>
+#include <gl\GLU.h>
 #endif
+
 #ifdef __MAC__
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
 #include <GLUT/glut.h>
-#else
-#include <GL/gl.h>
-#include <GL/glut.h>
 #endif
+
+
 
 // ----------------------------------------------------------
 struct RadLight
@@ -34,8 +43,8 @@ struct RadLight
 
 // ----------------------------------------------------------
 const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 600;
-const int TILE_SIZE=5;
+const int SCREEN_HEIGHT = 800;
+const int TILE_SIZE=25;
 const int TILES_WIDE = SCREEN_WIDTH/TILE_SIZE;
 const int TILES_HIGH = SCREEN_HEIGHT/TILE_SIZE;
 const int TOTAL_TILES = TILES_WIDE * TILES_HIGH;
@@ -66,7 +75,7 @@ const int ONE_BILLION = 1000000000;
 
 // ----------------------------------------------------------
 // http://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
-long clock_nanoseconds()
+/*long clock_nanoseconds()
 {
   struct timespec ts;
 
@@ -85,6 +94,7 @@ long clock_nanoseconds()
     return (ONE_BILLION * ts.tv_sec + ts.tv_nsec);
   #endif
 }
+*/
 
 // ----------------------------------------------------------
 void initGraphics(void)
@@ -129,7 +139,10 @@ GLfloat getTile(int tileX, int tileY)
   if(tileY < 0) return -1.0;
   if(tileX >= TILES_WIDE) return -1.0;
   if(tileY >= TILES_HIGH) return -1.0;
-
+ 
+  //int foo = tileY * TILES_WIDE + tileX;
+  //printf("break here: tileX %d, tileY %d, TILES_WIDE %d\n accessed value: %d  array size %d\n", tileX, tileY, TILES_WIDE, (tileY * TILES_WIDE + tileX), (TILES_WIDE * TILES_HIGH));
+  //printf("value at that location: %d\n\n", tiles[foo]); 
   return tiles[tileY * TILES_WIDE + tileX];
 }
 
@@ -138,10 +151,11 @@ void initScene(void)
 {
   tiles = new GLfloat[TILES_WIDE * TILES_HIGH];
  
-  for(int i=0;i<TILES_WIDE;i++)
-    for(int j=0;j<TILES_HIGH;j++)
+  for(int i=0;i<TILES_WIDE;i++){
+    for(int j=0;j<TILES_HIGH;j++){
       setTile(i, j, 0.0);
-
+	}
+  }
   setTile(10, 10, -1.0);
   setTile(10, 9, -1.0);
   
@@ -301,11 +315,11 @@ void renderScene(void)
 void displayCallback() {
   glClear(GL_COLOR_BUFFER_BIT);
   
-  long start_nsec = clock_nanoseconds();
+  //long start_nsec = clock_nanoseconds();
   renderScene();
-  long nsec = clock_nanoseconds() - start_nsec;
+  //long nsec = clock_nanoseconds() - start_nsec;
   
-  printf("Rendered\t%d\t%0.4f\n", TOTAL_TILES, nsec / (1.0f * ONE_BILLION));
+  //printf("Rendered\t%d\t%0.4f\n", TOTAL_TILES, nsec / (1.0f * ONE_BILLION));
   
   // present frame buffer to screen
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -412,6 +426,7 @@ void idleCallback(void)
 // ----------------------------------------------------------
 int main(int argc, char **argv)
 {
+  initScene();
   glutInit(&argc,argv);
   glutInitWindowPosition(100,100);
   glutInitWindowSize(SCREEN_WIDTH,SCREEN_HEIGHT);
@@ -426,7 +441,7 @@ int main(int argc, char **argv)
   glutIdleFunc(idleCallback);
   
   initGraphics();
-  initScene();
+ 
   
   glutMainLoop();
 
