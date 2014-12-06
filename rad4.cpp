@@ -8,8 +8,7 @@
 #include <cassert>
 #include <math.h>
 #include <time.h>
-//#include <sys/time.h>
-
+#include <chrono>
 
 #ifdef __MACH__
 #include <mach/clock.h>
@@ -72,33 +71,6 @@ const int TOTAL_LIGHTS = 1 + NUM_VPLS;
 RadLight lights[TOTAL_LIGHTS];
 
 const int ONE_BILLION = 1000000000;
-
-
-// ----------------------------------------------------------
-// http://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
-long clock_nanoseconds()
-{
-	/*
-	struct timespec ts;
-	
-#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
-	clock_serv_t cclock;
-	mach_timespec_t mts;
-	host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
-	clock_get_time(cclock, &mts);
-	mach_port_deallocate(mach_task_self(), cclock);
-	ts.tv_sec = mts.tv_sec;
-	ts.tv_nsec = mts.tv_nsec;
-	return (ONE_BILLION * ts.tv_sec + ts.tv_nsec);
-
-#else
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return (ONE_BILLION * ts.tv_sec + ts.tv_nsec);
-#endif
-	*/
-	return 1;
-	
-}
 
 
 // ----------------------------------------------------------
@@ -315,34 +287,19 @@ void renderScene(void)
 
 // ----------------------------------------------------------
 void displayCallback() {
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT);	
 
-	//windows timing code
-	LARGE_INTEGER StartingTime, EndingTime, Elapsed_MicroSeconds;
-	LARGE_INTEGER Frequency;
-
-	QueryPerformanceFrequency(&Frequency);
-	QueryPerformanceCounter(&StartingTime);
+	typedef std::chrono::high_resolution_clock Time;
+	typedef std::chrono::nanoseconds ns;
+	typedef std::chrono::duration<float> fsec;
+	auto t0 = Time::now();
 
 	renderScene();
 
-	QueryPerformanceCounter(&EndingTime);
-	Elapsed_MicroSeconds.QuadPart = EndingTime.QuadPart - StartingTime.QuadPart;
-	Elapsed_MicroSeconds.QuadPart *= 1000000;
-	Elapsed_MicroSeconds.QuadPart /= Frequency.QuadPart;
-	printf("Rendered\t%d\t%lld\n", TOTAL_TILES, Elapsed_MicroSeconds.QuadPart);
-
-	//end of windows code
-
-	//mac os code
-	/*
-	long start_nsec = clock_nanoseconds();
-	renderScene();
-	long nsec = clock_nanoseconds() - start_nsec;
-	printf("Rendered\t%d\t%0.4f\n", TOTAL_TILES, nsec / (1.0f * ONE_BILLION));
-	*/
-	//end of mac os code
-
+	auto t1 = Time::now();
+	fsec duration = t1 - t0;
+	ns nanoseconds = std::chrono::duration_cast<ns>(duration);
+	std::cout << "\nRendered "  << TOTAL_TILES << "in " << nanoseconds.count() << " nanoseconds";
 
 	// present frame buffer to screen
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
