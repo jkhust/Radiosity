@@ -174,7 +174,7 @@ bool raycast(int x0, int y0, int x1, int y1, int &xhit, int &yhit)
 
 	int stepped = 0;
 
-	while(1){
+	for (;;){
 		if (getTile(x, y) < 0.0) {
 			xhit = x - stepped*sx;
 			yhit = y - stepped*sy;
@@ -206,7 +206,7 @@ void spawnLights(void)
 	int vpl = 1;
 
 	float radians = 0.0f;
-	while (radians < twopi && vpl<=NUM_VPLS)
+	while (radians < twopi)
 	{
 		float xdir = cos(radians);
 		float ydir = sin(radians);
@@ -269,25 +269,93 @@ void renderScene(void)
 		}
 	}
 
-	// *** render world pixels based on their intensities ***
-	for (int i = 0; i < TILES_WIDE; i++)
-	{
-		for (int j = 0; j < TILES_HIGH; j++)
+	//three difference scenarios- tile size 1, 2 or divisible by 5
+	//tile size divisibile by 5
+	if ((TILE_SIZE % 5) == 0){
+		// *** render world pixels based on their intensities ***
+		for (int i = 0; i < TILES_WIDE; i += 5)
 		{
-			// convert blocker tiles to black
-			float intensity = getTile(i, j);
-			if (intensity < 0.0) intensity = 0.0;
+			for (int j = 0; j < TILES_HIGH; j += 5)
+			{
+				// convert blocker tiles to black
+				float intensity[5];
+				intensity[0] = getTile(i, j);
+				intensity[1] = getTile(i + 1, j + 1);
+				intensity[2] = getTile(i + 2, j + 2);
+				intensity[3] = getTile(i + 3, j + 3);
+				intensity[4] = getTile(i + 4, j + 4);
+				//float intensity_2 = getTile((i + 1), (j + 1));
+				//float intensit
+				for (int k = 0; k < 5; k++){
+					if (intensity[k] < 0.0){
+						intensity[k] = 0.0;
+					}
+				}
 
-			for (int x = 0; x < TILE_SIZE; x++)
-				for (int y = 0; y < TILE_SIZE; y++)
-					setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
+				for (int x = 0; x < TILE_SIZE; x++) {
+					for (int y = 0; y < TILE_SIZE; y++) {
+						setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity[0], intensity[0], intensity[0]);
+						setPixel((i + 1) *TILE_SIZE + x, (j + 1) * TILE_SIZE + y, intensity[1], intensity[1], intensity[1]);
+						setPixel((i + 2) *TILE_SIZE + x, (j + 2) * TILE_SIZE + y, intensity[2], intensity[2], intensity[2]);
+						setPixel((i + 3) *TILE_SIZE + x, (j + 3) * TILE_SIZE + y, intensity[3], intensity[3], intensity[3]);
+						setPixel((i + 4) *TILE_SIZE + x, (j + 4) * TILE_SIZE + y, intensity[4], intensity[4], intensity[4]);
+					}
+				}
+			}
+		}
+
+
+	}
+
+	//tile size divisible by 2
+	else if ((TILE_SIZE % 2) == 0){
+		// *** render world pixels based on their intensities ***
+		for (int i = 0; i < TILES_WIDE; i+=2)
+		{
+			for (int j = 0; j < TILES_HIGH; j+=2)
+			{
+				// convert blocker tiles to black
+				float intensity = getTile(i, j); 
+				float intensity_2 = getTile((i + 1), (j + 1));
+				if (intensity < 0.0) {
+					intensity = 0.0;
+				}
+				if (intensity_2 < 0.0){
+					intensity_2 = 0.0;
+				}
+				for (int x = 0; x < TILE_SIZE; x++) {
+					for (int y = 0; y < TILE_SIZE; y++) {
+						setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
+						setPixel((i + 1) *TILE_SIZE + x, (j + 1) * TILE_SIZE + y, intensity_2, intensity_2, intensity_2);
+					}
+				}
+			}
+		}
+	}
+
+
+	//tile_size is 1
+	else {
+		// *** render world pixels based on their intensities ***
+		for (int i = 0; i < TILES_WIDE; i++)
+		{
+			for (int j = 0; j < TILES_HIGH; j++)
+			{
+				// convert blocker tiles to black
+				float intensity = getTile(i, j);
+				if (intensity < 0.0) intensity = 0.0;
+
+				for (int x = 0; x < TILE_SIZE; x++)
+					for (int y = 0; y < TILE_SIZE; y++)
+						setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
+			}
 		}
 	}
 }
 
 // ----------------------------------------------------------
 void displayCallback() {
-	glClear(GL_COLOR_BUFFER_BIT);	
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	typedef std::chrono::high_resolution_clock Time;
 	typedef std::chrono::nanoseconds ns;
@@ -299,7 +367,7 @@ void displayCallback() {
 	auto t1 = Time::now();
 	fsec duration = t1 - t0;
 	ns nanoseconds = std::chrono::duration_cast<ns>(duration);
-	std::cout << "\nRendered "  << TOTAL_TILES << "in " << nanoseconds.count() << " nanoseconds";
+	std::cout << "\nRendered " << TOTAL_TILES << "in " << nanoseconds.count() << " nanoseconds";
 
 	// present frame buffer to screen
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -421,6 +489,8 @@ int main(int argc, char **argv)
 	glutIdleFunc(idleCallback);
 
 	initGraphics();
+
+
 	glutMainLoop();
 
 	cleanupScene();
