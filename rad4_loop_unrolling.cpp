@@ -42,7 +42,7 @@ struct RadLight
 
 // ----------------------------------------------------------
 const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 800;
+const int SCREEN_HEIGHT = 600;
 const int TILE_SIZE = 10;
 const int TILES_WIDE = SCREEN_WIDTH / TILE_SIZE;
 const int TILES_HIGH = SCREEN_HEIGHT / TILE_SIZE;
@@ -198,6 +198,31 @@ void spawnLights(void)
 	lights[0].tileX = mouseTileX;
 	lights[0].tileY = mouseTileY;
 
+	//perform  bubble sort of lights
+	int i, j, flag = 1;
+	int temp_x;
+	int temp_y;
+	int size = TOTAL_LIGHTS;
+	for (i = 0; i <= size && flag; i++){
+		flag = 0;
+		for (j = 0; j < (size - 1); j++){
+			float jplus_val = lights[j + 1].tileY*TILES_WIDE + lights[j + 1].tileX;
+			float j_val = lights[j].tileY*TILES_WIDE + lights[j].tileX;
+
+			if (jplus_val < j_val){
+				temp_x = lights[j].tileX;
+				temp_y = lights[j].tileY;
+				lights[j].tileX = lights[j + 1].tileX;
+				lights[j].tileY = lights[j + 1].tileY;
+				lights[j + 1].tileX = temp_x;
+				lights[j + 1].tileY = temp_y;
+				flag = 1;
+			}
+		}
+	}
+
+
+
 	// *** CAST FIRST BOUNCE ***
 	float deltaDegrees = 360.0f / (float)NUM_VPLS;
 	float deltaRadians = deltaDegrees * M_PI / 180.0f;
@@ -271,11 +296,11 @@ void renderScene(void)
 
 	//three difference scenarios- tile size 1, 2 or divisible by 5
 	//tile size divisibile by 5
-	if ((TILE_SIZE % 5) == 0){
+	/*if ((TILE_SIZE % 5) == 0){
 		// *** render world pixels based on their intensities ***
 		for (int i = 0; i < TILES_WIDE; i += 1)
 		{
-			for (int j = 0; j <= TILES_HIGH-5; j += 5)
+			for (int j = 0; j <=  TILES_HIGH-5; j += 5)
 			{
 				// convert blocker tiles to black
 				float intensity[5];
@@ -306,9 +331,9 @@ void renderScene(void)
 
 
 	}
-
+	*/
 	//tile size divisible by 2
-	else if ((TILE_SIZE % 2) == 0){
+	if ((TILE_SIZE % 2) == 0){
 		// *** render world pixels based on their intensities ***
 		for (int i = 0; i < TILES_WIDE; i+=1)
 		{
