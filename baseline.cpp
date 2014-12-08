@@ -522,8 +522,12 @@ void keyCallback(unsigned char ch, int x, int y) {
       {
         mouseTileX = random_between(0, TILES_WIDE);
         mouseTileY = random_between(0, TILES_HIGH);
-        renderScene();
-        samplesTaken++;
+        
+        if( getTile(mouseTileX, mouseTileY) != -1.0)
+        {
+          renderScene();
+          samplesTaken++;
+        }
       }
             
       auto t1 = Time::now();
