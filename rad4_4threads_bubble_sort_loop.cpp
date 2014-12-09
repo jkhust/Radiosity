@@ -44,8 +44,10 @@ struct RadLight
 
 // ----------------------------------------------------------
 const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 800;
-const int TILE_SIZE = 5;
+const int SCREEN_HEIGHT = 600;
+const int SAMPLES_TO_TAKE = 20;
+
+const int TILE_SIZE = 10;
 const int TILES_WIDE = SCREEN_WIDTH / TILE_SIZE;
 const int TILES_HIGH = SCREEN_HEIGHT / TILE_SIZE;
 const int TOTAL_TILES = TILES_WIDE * TILES_HIGH;
@@ -65,7 +67,8 @@ int RMBDown = 0;
 int mouseTileX = 0;
 int mouseTileY = 0;
 
-bool editMode = false;
+bool drawMode = false;
+bool eraseMode = false;
 
 // lights
 const int NUM_VPLS = 64;
@@ -74,6 +77,11 @@ RadLight lights[TOTAL_LIGHTS];
 
 const int ONE_BILLION = 1000000000;
 
+
+typedef __int32 __int32_t;
+typedef unsigned __int32 __uint32_t;
+typedef __int16 __int16_t;
+typedef unsigned __int16 __uint16_t;
 
 // ----------------------------------------------------------
 void initGraphics(void)
@@ -92,6 +100,13 @@ void initGraphics(void)
 
 	glClearColor(1.0, 0.0, 0.0, 1.0);
 }
+
+// ----------------------------------------------------------
+
+int random_between(int min, int max) {
+	return rand() % (max - min) + min;
+}
+
 
 // ----------------------------------------------------------
 void cleanupGraphics(void)
@@ -311,8 +326,8 @@ void threads_render(){
 	std::vector<std::thread > threads;
 	threads.push_back(std::thread(render_scene_thread, 0, (TILES_WIDE / 2), 0, TILES_HIGH / 2));
 	threads.push_back(std::thread(render_scene_thread, (TILES_WIDE / 2), TILES_WIDE, 0, (TILES_HIGH / 2)));
-	threads.push_back(std::thread(render_scene_thread, TILES_WIDE/2, TILES_WIDE, TILES_HIGH/2, TILES_HIGH));
-	threads.push_back(std::thread(render_scene_thread, 0, (TILES_WIDE / 2), TILES_HIGH/2, TILES_HIGH));
+	threads.push_back(std::thread(render_scene_thread, TILES_WIDE / 2, TILES_WIDE, TILES_HIGH / 2, TILES_HIGH));
+	threads.push_back(std::thread(render_scene_thread, 0, (TILES_WIDE / 2), TILES_HIGH / 2, TILES_HIGH));
 
 	for (auto it = threads.begin(); it != threads.end(); ++it) {
 		std::thread &t = *it;
@@ -335,7 +350,7 @@ void renderScene(void)
 			// only cast from open tiles
 			if (getTile(i, j) >= 0.0)
 			{
-				if (editMode)
+				if (drawMode)
 				{
 					setTile(i, j, 1.0f);
 				}
@@ -363,21 +378,42 @@ void renderScene(void)
 }
 
 // ----------------------------------------------------------
+
+void renderSceneEditable(void)
+{
+	for (int i = 0; i<TILES_WIDE; i++)
+	{
+		for (int j = 0; j<TILES_HIGH; j++)
+		{
+			char intensity = (getTile(i, j) == 1) ? 0 : 255;
+
+			for (int x = 0; x < TILE_SIZE; x++)
+				for (int y = 0; y < TILE_SIZE; y++)
+					setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
+		}
+	}
+}
+
+// ----------------------------------------------------------
 void displayCallback() {
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	typedef std::chrono::high_resolution_clock Time;
-	typedef std::chrono::nanoseconds ns;
-	typedef std::chrono::duration<float> fsec;
-	auto t0 = Time::now();
+	if (drawMode || eraseMode) {
+		renderSceneEditable();
+	}
+	else {
+		typedef std::chrono::high_resolution_clock Time;
+		typedef std::chrono::nanoseconds ns;
+		typedef std::chrono::duration<float> fsec;
+		auto t0 = Time::now();
 
-	renderScene();
+		renderScene();
 
-	auto t1 = Time::now();
-	fsec duration = t1 - t0;
-	ns nanoseconds = std::chrono::duration_cast<ns>(duration);
-	std::cout << "\nRendered " << TOTAL_TILES << "in " << nanoseconds.count() << " nanoseconds";
-
+		auto t1 = Time::now();
+		fsec duration = t1 - t0;
+		ns nanoseconds = std::chrono::duration_cast<ns>(duration);
+		std::cout << "\nRendered " << TOTAL_TILES << "in " << nanoseconds.count() << " nanoseconds";
+	}
 	// present frame buffer to screen
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glRasterPos3f(0.0, 0.0, 0.0);
@@ -395,29 +431,26 @@ void mouseCallback(int button, int state, int x, int y)
 	printf("mouse move %d %d\n", mouseTileX, mouseTileY);
 
 	LMBDown = (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN);
-	RMBDown = (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN);
 
-	if (editMode)
+	if (LMBDown)
 	{
-		int xEnd = mouseTileX + drawSize;
-		int yEnd = mouseTileY + drawSize;
-
-		if (xEnd > TILES_WIDE) xEnd = TILES_WIDE;
-		if (yEnd > TILES_HIGH) yEnd = TILES_HIGH;
-
-		if (LMBDown)
+		if (drawMode || eraseMode)
 		{
-			for (int i = mouseTileX; i < xEnd; i++)
-				for (int j = mouseTileY; j < yEnd; j++)
-					setTile(i, j, -1.0);
-		}
-		else if (RMBDown)
-		{
-			for (int i = mouseTileX; i < xEnd; i++)
-				for (int j = mouseTileY; j < yEnd; j++)
-					setTile(i, j, 0.0);
+			float valueToPlace = drawMode ? 1 : 0;
+
+			int xEnd = mouseTileX + drawSize;
+			int yEnd = mouseTileY + drawSize;
+
+			if (xEnd >= TILES_WIDE) xEnd = TILES_WIDE - 1;
+			if (yEnd >= TILES_HIGH) yEnd = TILES_HIGH - 1;
+
+			for (int i = mouseTileX; i <= xEnd; i++)
+				for (int j = mouseTileY; j <= yEnd; j++)
+					setTile(i, j, valueToPlace);
+
 		}
 	}
+
 	glutPostRedisplay();
 }
 
@@ -428,42 +461,203 @@ void motionCallback(int x, int y)
 }
 
 // ----------------------------------------------------------
+void fillToDensity(float density)
+{
+	for (int i = 0; i<TILES_WIDE; i++)
+		for (int j = 0; j<TILES_HIGH; j++)
+			setTile(i, j, 0);
+
+	int tilesSet = 0;
+
+	while ((1.0f * tilesSet / TOTAL_TILES) < density)
+	{
+		int i = random_between(0, TILES_WIDE - 1);
+		int j = random_between(0, TILES_HIGH - 1);
+
+		if (getTile(i, j) == 0)
+		{
+			setTile(i, j, 1);
+			tilesSet++;
+		}
+	}
+
+}
+
+// --------------------------------------------------------
+void tryLoadMap(const char *mapID)
+{
+	char filePath[80];
+	sprintf(filePath, "maps/%d_%d_%s.map", TILES_WIDE, TILES_HIGH, mapID);
+	FILE * fin = fopen(filePath, "rb");
+
+	if (fin == NULL)
+	{
+		printf("Map %s not found.\n", filePath);
+		return;
+	}
+
+	int tilesWide = 0;
+	int tilesHigh = 0;
+	fread(&tilesWide, sizeof(__uint16_t), 1, fin);
+	fread(&tilesHigh, sizeof(__uint16_t), 1, fin);
+
+	assert(tilesWide == TILES_WIDE);
+	assert(tilesHigh == TILES_HIGH);
+
+	for (int i = 0; i<TILES_WIDE; i++)
+		for (int j = 0; j<TILES_HIGH; j++)
+		{
+			float val;
+			fread(&val, sizeof(float), 1, fin);
+
+			setTile(i, j, val);
+		}
+
+	fclose(fin);
+	fin = NULL;
+}
+
+// ----------------------------------------------------------
+void saveMap(const char *mapID)
+{
+	char filePath[80];
+	sprintf(filePath, "maps/%d_%d_%s.map", TILES_WIDE, TILES_HIGH, mapID);
+
+	FILE * fout = fopen(filePath, "wb");
+
+	fwrite(&TILES_WIDE, sizeof(__uint16_t), 1, fout);
+	fwrite(&TILES_HIGH, sizeof(__uint16_t), 1, fout);
+
+	for (int i = 0; i<TILES_WIDE; i++)
+	{
+		for (int j = 0; j<TILES_HIGH; j++)
+		{
+			float val = getTile(i, j);
+			if (val != 1) val = 0;
+
+			fwrite(&val, sizeof(float), 1, fout);
+		}
+	}
+
+	fclose(fout);
+	fout = NULL;
+
+	printf("Map saved to %s\n", filePath);
+}
+
+
+// ----------------------------------------------------------
 // custom keyFunc with preset keys
 void keyCallback(unsigned char ch, int x, int y) {
 	switch (ch) {
+	case '[':
+	{
+		drawSize /= 2;
+		if (drawSize < 1) drawSize = 1;
+		printf("Draw size changed to %d\n", drawSize);
+		break;
+	}
+	case ']':
+	{
+		drawSize *= 2;
+		printf("Draw size changed to %d\n", drawSize);
+		break;
+	}
 	case '1':
 	{
-		printf("Draw size changed to 1.\n");
-		drawSize = 1;
+		tryLoadMap("1");
 		break;
 	}
 	case '2':
 	{
-		printf("Draw size changed to 2.\n");
-		drawSize = 2;
+		tryLoadMap("2");
 		break;
 	}
-	case '3':
+	case '9':
 	{
-		printf("Draw size changed to 3.\n");
-		drawSize = 3;
+		saveMap("1");
 		break;
 	}
-	case '4':
+	case '0':
 	{
-		printf("Draw size changed to 4.\n");
-		drawSize = 4;
+		saveMap("2");
 		break;
 	}
 	case 'd':
 	case 'D':
 	{
-		editMode = !editMode;
+		drawMode = true;
+		eraseMode = false;
 
-		if (editMode)
-			printf("Edit mode ON.\n");
-		else
-			printf("Edit mode OFF.\n");
+		printf("Draw mode ON.\n");
+		break;
+	}
+	case 'e':
+	case 'E':
+	{
+		drawMode = false;
+		eraseMode = true;
+
+		printf("Erase mode ON.\n");
+		break;
+	}
+	case 'r':
+	case 'R':
+	{
+		drawMode = false;
+		eraseMode = false;
+		printf("Render mode ON.\n");
+		break;
+	}
+	case 'f':
+	case 'F':
+	{
+		fillToDensity(0.01);
+		break;
+	}
+	case 'g':
+	case 'G':
+	{
+		fillToDensity(0.10);
+		break;
+	}
+	case 'h':
+	case 'H':
+	{
+		fillToDensity(0.25);
+		break;
+	}
+	case 't':
+	case 'T':
+	{
+		// --- TIME THE RENDERING FOR THE SCREEN ---
+		typedef std::chrono::high_resolution_clock Time;
+		typedef std::chrono::nanoseconds ns;
+		typedef std::chrono::duration<float> fsec;
+		auto t0 = Time::now();
+
+		int samplesTaken = 0;
+
+		while (samplesTaken < SAMPLES_TO_TAKE)
+		{
+			mouseTileX = random_between(0, TILES_WIDE);
+			mouseTileY = random_between(0, TILES_HIGH);
+
+			if (getTile(mouseTileX, mouseTileY) != 1)
+			{
+				renderScene();
+				samplesTaken++;
+			}
+		}
+
+		auto t1 = Time::now();
+		fsec duration = t1 - t0;
+		//ns nanoseconds = std::chrono::duration_cast<ns>(duration);
+
+		float avgRenderSec = 1.0f * duration.count() / samplesTaken;
+		float secPerTile = avgRenderSec / TOTAL_TILES;
+
+		printf("%d tiles in %f sec =\n\t(%f sec)\n", TOTAL_TILES, avgRenderSec, secPerTile);
 
 		break;
 	}
@@ -479,6 +673,7 @@ void idleCallback(void)
 	//we dont care about FPS, just render time for a frame.
 	//glutPostRedisplay();
 }
+
 
 // ----------------------------------------------------------
 int main(int argc, char **argv)
