@@ -45,7 +45,7 @@ struct RadLight
 // ----------------------------------------------------------
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 800;
-const int TILE_SIZE = 2;
+const int TILE_SIZE = 5;
 const int TILES_WIDE = SCREEN_WIDTH / TILE_SIZE;
 const int TILES_HIGH = SCREEN_HEIGHT / TILE_SIZE;
 const int TOTAL_TILES = TILES_WIDE * TILES_HIGH;
@@ -258,62 +258,14 @@ void spawnLights(void)
 
 // ----------------------------------------------------------
 
-void render_scene_thread1() {
-
-	//tile size divisible by 2
-	 if ((TILE_SIZE % 2) == 0){
-		// *** render world pixels based on their intensities ***
-		for (int i = 0; i < (TILES_WIDE/2); i+=1)
-		{
-			for (int j = 0; j < (TILES_HIGH/2)-1; j+=2)
-			{
-				// convert blocker tiles to black
-				float intensity = getTile(i, j); 
-				float intensity_2 = getTile((i), (j + 1));
-				if (intensity < 0.0) {
-					intensity = 0.0;
-				}
-				if (intensity_2 < 0.0){
-					intensity_2 = 0.0;
-				}
-				for (int x = 0; x < TILE_SIZE; x++) {
-					for (int y = 0; y < TILE_SIZE; y++) {
-						setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
-						setPixel(i *TILE_SIZE + x, (j + 1) * TILE_SIZE + y, intensity_2, intensity_2, intensity_2);
-					}
-				}
-			}
-		}
-	}
-
-
-	//tile_size is 1
-	else {
-		// *** render world pixels based on their intensities ***
-		for (int i = 0; i < TILES_WIDE/2; i++)
-		{
-			for (int j = 0; j < TILES_HIGH/2; j++)
-			{
-				// convert blocker tiles to black
-				float intensity = getTile(i, j);
-				if (intensity < 0.0) intensity = 0.0;
-
-				for (int x = 0; x < TILE_SIZE; x++)
-					for (int y = 0; y < TILE_SIZE; y++)
-						setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
-			}
-		}
-	}
-}
-
-void render_scene_thread2() {
+void render_scene_thread(int i_start, int i_end, int j_start, int j_end) {
 
 	//tile size divisible by 2
 	if ((TILE_SIZE % 2) == 0){
 		// *** render world pixels based on their intensities ***
-		for (int i = TILES_WIDE/2; i < TILES_WIDE; i += 1)
+		for (int i = i_start; i < i_end; i += 1)
 		{
-			for (int j = TILES_HIGH/2; j < (TILES_HIGH) - 1; j += 2)
+			for (int j = j_start; j < j_end - 1; j += 2)
 			{
 				// convert blocker tiles to black
 				float intensity = getTile(i, j);
@@ -338,104 +290,9 @@ void render_scene_thread2() {
 	//tile_size is 1
 	else {
 		// *** render world pixels based on their intensities ***
-		for (int i = TILES_WIDE/2; i < TILES_WIDE; i++)
+		for (int i = i_start; i < i_end; i++)
 		{
-			for (int j = TILES_HIGH/2; j < TILES_WIDE; j++)
-			{
-				// convert blocker tiles to black
-				float intensity = getTile(i, j);
-				if (intensity < 0.0) intensity = 0.0;
-
-				for (int x = 0; x < TILE_SIZE; x++)
-					for (int y = 0; y < TILE_SIZE; y++)
-						setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
-			}
-		}
-	}
-}
-void render_scene_thread3() {
-
-	//tile size divisible by 2
-	if ((TILE_SIZE % 2) == 0){
-		// *** render world pixels based on their intensities ***
-		for (int i = 0; i < (TILES_WIDE / 2); i += 1)
-		{
-			for (int j = TILES_HIGH/2; j < TILES_HIGH - 1; j += 2)
-			{
-				// convert blocker tiles to black
-				float intensity = getTile(i, j);
-				float intensity_2 = getTile((i), (j + 1));
-				if (intensity < 0.0) {
-					intensity = 0.0;
-				}
-				if (intensity_2 < 0.0){
-					intensity_2 = 0.0;
-				}
-				for (int x = 0; x < TILE_SIZE; x++) {
-					for (int y = 0; y < TILE_SIZE; y++) {
-						setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
-						setPixel(i *TILE_SIZE + x, (j + 1) * TILE_SIZE + y, intensity_2, intensity_2, intensity_2);
-					}
-				}
-			}
-		}
-	}
-
-
-	//tile_size is 1
-	else {
-		// *** render world pixels based on their intensities ***
-		for (int i = 0; i < TILES_WIDE / 2; i++)
-		{
-			for (int j = TILES_HIGH/2; j < TILES_HIGH; j++)
-			{
-				// convert blocker tiles to black
-				float intensity = getTile(i, j);
-				if (intensity < 0.0) intensity = 0.0;
-
-				for (int x = 0; x < TILE_SIZE; x++)
-					for (int y = 0; y < TILE_SIZE; y++)
-						setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
-			}
-		}
-	}
-}
-
-void render_scene_thread4() {
-
-	//tile size divisible by 2
-	if ((TILE_SIZE % 2) == 0){
-		// *** render world pixels based on their intensities ***
-		for (int i = TILES_WIDE/2; i < TILES_WIDE; i += 1)
-		{
-			for (int j = 0; j < (TILES_HIGH / 2) - 1; j += 2)
-			{
-				// convert blocker tiles to black
-				float intensity = getTile(i, j);
-				float intensity_2 = getTile((i), (j + 1));
-				if (intensity < 0.0) {
-					intensity = 0.0;
-				}
-				if (intensity_2 < 0.0){
-					intensity_2 = 0.0;
-				}
-				for (int x = 0; x < TILE_SIZE; x++) {
-					for (int y = 0; y < TILE_SIZE; y++) {
-						setPixel(i * TILE_SIZE + x, j * TILE_SIZE + y, intensity, intensity, intensity);
-						setPixel(i *TILE_SIZE + x, (j + 1) * TILE_SIZE + y, intensity_2, intensity_2, intensity_2);
-					}
-				}
-			}
-		}
-	}
-
-
-	//tile_size is 1
-	else {
-		// *** render world pixels based on their intensities ***
-		for (int i = TILES_WIDE/2; i < TILES_WIDE; i++)
-		{
-			for (int j = 0; j < TILES_HIGH / 2; j++)
+			for (int j = j_start; j < j_end; j++)
 			{
 				// convert blocker tiles to black
 				float intensity = getTile(i, j);
@@ -452,10 +309,11 @@ void render_scene_thread4() {
 void threads_render(){
 
 	std::vector<std::thread > threads;
-	threads.push_back(std::thread(render_scene_thread1));
-	threads.push_back(std::thread(render_scene_thread2));
-	threads.push_back(std::thread(render_scene_thread3));
-	threads.push_back(std::thread(render_scene_thread4));
+	threads.push_back(std::thread(render_scene_thread, 0, (TILES_WIDE / 2), 0, TILES_HIGH / 2));
+	threads.push_back(std::thread(render_scene_thread, (TILES_WIDE / 2), TILES_WIDE, 0, (TILES_HIGH / 2)));
+	threads.push_back(std::thread(render_scene_thread, TILES_WIDE/2, TILES_WIDE, TILES_HIGH/2, TILES_HIGH));
+	threads.push_back(std::thread(render_scene_thread, 0, (TILES_WIDE / 2), TILES_HIGH/2, TILES_HIGH));
+
 	for (auto it = threads.begin(); it != threads.end(); ++it) {
 		std::thread &t = *it;
 		t.join();
